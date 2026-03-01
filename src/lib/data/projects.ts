@@ -115,6 +115,7 @@ export const getProjectById = async (id: string) => {
 };
 
 interface PersistPayload {
+	modelId: string;
 	name: string;
 	desc: string;
 	suggestedIcons: string[];
@@ -125,6 +126,7 @@ interface PersistPayload {
 const normalizePayload = (payload: PersistPayload): PersistPayload => ({
 	name: payload.name,
 	desc: payload.desc,
+	modelId: payload.modelId,
 	suggestedIcons: [...payload.suggestedIcons],
 	selectedIcons: [...payload.selectedIcons],
 	generatedSVGs: payload.generatedSVGs.map((svg) => ({
@@ -132,7 +134,12 @@ const normalizePayload = (payload: PersistPayload): PersistPayload => ({
 		name: svg.name,
 		code: svg.code,
 		status: svg.status,
-		variant: svg.variant
+		variant: svg.variant,
+		styleControls: {
+			palette: [...svg.styleControls.palette],
+			strokeWidth: svg.styleControls.strokeWidth
+		},
+		retryHistory: svg.retryHistory.map((entry) => ({ ...entry }))
 	}))
 });
 
@@ -146,6 +153,7 @@ const toProjectRecord = (
 
 	return {
 		id,
+		modelId: payload.modelId,
 		name: payload.name,
 		desc: payload.desc,
 		iconCount: payload.generatedSVGs.length || payload.selectedIcons.length,
@@ -196,4 +204,16 @@ export const updateProject = async (id: string, payload: PersistPayload) => {
 	});
 
 	return record;
+};
+
+export const deleteProject = async (id: string) => {
+	if (!browser) {
+		throw new Error('Cannot delete project during SSR');
+	}
+
+	await runTx<void>('readwrite', (store, resolve, reject) => {
+		const req = store.delete(id);
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error);
+	});
 };

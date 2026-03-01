@@ -1,4 +1,5 @@
 import type { PresetPack, ProjectRecord } from '$lib/domain/types';
+import { DEFAULT_MODEL_ID } from '$lib/ai/models';
 
 export const PRESET_PACKS: PresetPack[] = [
 	{
@@ -31,6 +32,7 @@ export const MOCK_PROJECTS: Omit<
 >[] = [
 	{
 		id: '1',
+		modelId: DEFAULT_MODEL_ID,
 		name: 'EcoShop Mobile App',
 		desc: 'Organic, leafy shapes, soft minimal lines, friendly.',
 		iconCount: 14,
@@ -40,6 +42,7 @@ export const MOCK_PROJECTS: Omit<
 	},
 	{
 		id: '2',
+		modelId: DEFAULT_MODEL_ID,
 		name: 'DevTools Pro Interface',
 		desc: 'Technical, grid-aligned, sharp geometric edges, precise.',
 		iconCount: 32,
@@ -49,6 +52,7 @@ export const MOCK_PROJECTS: Omit<
 	},
 	{
 		id: '3',
+		modelId: DEFAULT_MODEL_ID,
 		name: 'Personal Portfolio',
 		desc: 'High contrast, bold, brutalist primitives.',
 		iconCount: 8,

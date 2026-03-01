@@ -10,10 +10,28 @@ export interface GeneratedSvg {
 	code: string;
 	status: 'generating' | 'done';
 	variant: number;
+	styleControls: SvgStyleControls;
+	retryHistory: SvgRetryRecord[];
+}
+
+export interface SvgStyleControls {
+	palette: string[];
+	strokeWidth: number;
+}
+
+export interface SvgRetryRecord {
+	phase: 'generate' | 'remix';
+	errorType: string;
+	message: string;
+	modelId: string;
+	timestamp: string;
+	rawModelOutput?: string;
+	correctionOutput?: string;
 }
 
 export interface ProjectRecord {
 	id: string;
+	modelId: string;
 	name: string;
 	desc: string;
 	iconCount: number;

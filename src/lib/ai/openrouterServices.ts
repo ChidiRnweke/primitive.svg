@@ -5,13 +5,16 @@ import type {
 	ApiKeyStore,
 	GenerateSvgInput,
 	IconSuggestionService,
+	ModelCatalogService,
+	ModelInfo,
 	RemixSvgInput,
+	RetryContextEntry,
 	SuggestIconsInput,
 	SvgGenerationService
 } from '$lib/ai/interfaces';
 import { MissingApiKeyError } from '$lib/ai/interfaces';
+import { AiResponseValidationError as ValidationError } from '$lib/ai/interfaces';
 
-const DEFAULT_MODEL = 'openai/gpt-4.1-mini';
 const APP_TITLE = 'Primitive.svg';
 
 const readAssistantContent = (content: unknown) => {
@@ -62,13 +65,6 @@ const parseFirstJsonObject = (raw: string) => {
 		}
 	}
 
-	const firstBrace = trimmed.indexOf('{');
-	const lastBrace = trimmed.lastIndexOf('}');
-	if (firstBrace >= 0 && lastBrace > firstBrace) {
-		const candidate = trimmed.slice(firstBrace, lastBrace + 1);
-		return JSON.parse(candidate) as Record<string, unknown>;
-	}
-
 	throw new Error('Model did not return JSON content');
 };
 
@@ -112,7 +108,7 @@ class OpenRouterIconSuggestionService implements IconSuggestionService {
 
 		const response = await client.chat.send({
 			chatGenerationParams: {
-				model: DEFAULT_MODEL,
+				model: input.modelId,
 				temperature: 0.25,
 				messages: [
 					{
@@ -151,47 +147,152 @@ class OpenRouterIconSuggestionService implements IconSuggestionService {
 class OpenRouterSvgGenerationService implements SvgGenerationService {
 	constructor(private readonly apiKeyStore: ApiKeyStore) {}
 
-	private async requestSvg(systemPrompt: string, userPrompt: string) {
-		const apiKey = ensureApiKey(this.apiKeyStore);
-		const client = createClient(apiKey);
-
-		const response = await client.chat.send({
-			chatGenerationParams: {
-				model: DEFAULT_MODEL,
-				temperature: 0.3,
-				messages: [
-					{ role: 'system', content: systemPrompt },
-					{ role: 'user', content: userPrompt }
-				]
-			}
-		});
-
-		const rawContent = readAssistantContent(response.choices[0]?.message?.content);
-		if (!rawContent) {
-			throw new Error('No SVG response returned');
+	private buildRetryContext(context: RetryContextEntry[] | undefined) {
+		if (!context || context.length === 0) {
+			return '';
 		}
 
-		const parsed = parseFirstJsonObject(rawContent);
-		const svgRaw = typeof parsed.svg === 'string' ? parsed.svg : rawContent;
-		return extractSvgMarkup(svgRaw);
+		const compact = context
+			.slice(-3)
+			.map((entry, index) => {
+				const base = `Attempt ${index + 1}: ${entry.errorType} - ${entry.message}`;
+				const raw = entry.rawModelOutput ? ` Raw: ${entry.rawModelOutput.slice(0, 300)}` : '';
+				const correction = entry.correctionOutput
+					? ` Correction: ${entry.correctionOutput.slice(0, 300)}`
+					: '';
+				return `${base}${raw}${correction}`;
+			})
+			.join('\n');
+
+		return `\nPrior failures to avoid:\n${compact}`;
+	}
+
+	private async requestSvg(
+		systemPrompt: string,
+		userPrompt: string,
+		modelId: string,
+		retryContext?: RetryContextEntry[]
+	) {
+		const apiKey = ensureApiKey(this.apiKeyStore);
+		const client = createClient(apiKey);
+		const contextSuffix = this.buildRetryContext(retryContext);
+		const originalUserPrompt = `${userPrompt}${contextSuffix}`;
+
+		const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+			{ role: 'system', content: systemPrompt },
+			{ role: 'user', content: originalUserPrompt }
+		];
+
+		const executeTurn = async () => {
+			const response = await client.chat.send({
+				chatGenerationParams: {
+					model: modelId,
+					temperature: 0.3,
+					messages
+				}
+			});
+
+			const content = readAssistantContent(response.choices[0]?.message?.content);
+			if (!content) {
+				throw new ValidationError({
+					errorType: 'empty_output',
+					message: 'No SVG response returned',
+					modelId,
+					rawModelOutput: ''
+				});
+			}
+
+			return content;
+		};
+
+		const attemptParse = (rawContent: string) => {
+			const parsed = parseFirstJsonObject(rawContent);
+			const svgRaw = typeof parsed.svg === 'string' ? parsed.svg : rawContent;
+			return extractSvgMarkup(svgRaw);
+		};
+
+		const firstOutput = await executeTurn();
+		try {
+			return attemptParse(firstOutput);
+		} catch (firstError) {
+			const message = firstError instanceof Error ? firstError.message : 'Invalid SVG response';
+			messages.push({ role: 'assistant', content: firstOutput });
+			messages.push({
+				role: 'user',
+				content: `Validation failed: ${message}. Return a corrected response now. Output MUST be strict JSON only: {"svg":"<svg ...>...</svg>"}. No markdown or explanation.`
+			});
+		}
+
+		const correctionOutput = await executeTurn();
+		try {
+			return attemptParse(correctionOutput);
+		} catch (secondError) {
+			const message =
+				secondError instanceof Error ? secondError.message : 'Invalid corrected SVG response';
+			throw new ValidationError({
+				errorType: 'invalid_svg_payload',
+				message,
+				modelId,
+				rawModelOutput: firstOutput.slice(0, 2000),
+				correctionOutput: correctionOutput.slice(0, 2000)
+			});
+		}
 	}
 
 	generateSvg(input: GenerateSvgInput) {
 		return this.requestSvg(
 			'You are an SVG icon generator. Return ONLY JSON: {"svg": "<svg ...>...</svg>"}. Keep SVG valid, standalone, no markdown, no script, no external resources. Use viewBox 0 0 100 100 and fill="none" by default.',
-			`Create one icon for "${input.iconName}".\nProject: ${input.projectName}\nStyle rules: ${input.projectDescription}`
+			`Create one icon for "${input.iconName}".\nProject: ${input.projectName}\nStyle rules: ${input.projectDescription}`,
+			input.modelId,
+			input.retryContext
 		);
 	}
 
 	remixSvg(input: RemixSvgInput) {
+		const colorLine =
+			input.colorPalette && input.colorPalette.length > 0
+				? `Color palette (use only these hex colors where possible): ${input.colorPalette.join(', ')}`
+				: 'Color palette: keep existing colors unless user asks otherwise';
+		const strokeLine =
+			typeof input.strokeWidth === 'number'
+				? `Preferred line thickness: stroke-width ${input.strokeWidth}`
+				: 'Preferred line thickness: keep visually consistent with current icon';
+
 		return this.requestSvg(
 			'You are an SVG icon editor. Return ONLY JSON: {"svg": "<svg ...>...</svg>"}. Keep original intent while applying requested style edits. Keep SVG safe and standalone.',
-			`Update icon "${input.iconName}" for project "${input.projectName}".\nStyle rules: ${input.projectDescription}\nRevision: ${input.variant + 1}\nRequested edits: ${input.remixPrompt}\nCurrent SVG:\n${input.currentSvg}`
+			`Update icon "${input.iconName}" for project "${input.projectName}".\nStyle rules: ${input.projectDescription}\nRevision: ${input.variant + 1}\nRequested edits: ${input.remixPrompt || 'No freeform edits provided; apply style controls only.'}\n${colorLine}\n${strokeLine}\nCurrent SVG:\n${input.currentSvg}`,
+			input.modelId,
+			input.retryContext
 		);
+	}
+}
+
+class OpenRouterModelCatalogService implements ModelCatalogService {
+	constructor(private readonly apiKeyStore: ApiKeyStore) {}
+
+	async listModels(): Promise<ModelInfo[]> {
+		const apiKey = ensureApiKey(this.apiKeyStore);
+		const client = createClient(apiKey);
+		const response = await client.models.list();
+
+		return response.data
+			.map((model) => {
+				const id = model.id.trim();
+				const provider = id.includes('/') ? id.split('/')[0] : 'other';
+
+				return {
+					id,
+					name: model.name.trim() || id,
+					provider: provider.toLowerCase()
+				};
+			})
+			.filter((model) => model.id.length > 0)
+			.sort((a, b) => a.id.localeCompare(b.id));
 	}
 }
 
 export const createOpenRouterAiServices = (apiKeyStore: ApiKeyStore): AiServices => ({
 	iconSuggestionService: new OpenRouterIconSuggestionService(apiKeyStore),
-	svgGenerationService: new OpenRouterSvgGenerationService(apiKeyStore)
+	svgGenerationService: new OpenRouterSvgGenerationService(apiKeyStore),
+	modelCatalogService: new OpenRouterModelCatalogService(apiKeyStore)
 });
