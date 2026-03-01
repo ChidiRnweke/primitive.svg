@@ -124,9 +124,14 @@
 	const isProviderOpen = (provider: string) => openProviders.has(provider);
 </script>
 
+<svelte:window onkeydown={(e) => { if (isOpen && e.key === 'Escape') onClose(); }} />
+
 {#if isOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-[#0F0F0F]/80 p-4 backdrop-blur-sm fade-in"
+		onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
 	>
 		<div
 			class="flex h-[85vh] w-full max-w-5xl flex-col border-2 border-[#0F0F0F] bg-[#F2F2F0] shadow-[8px_8px_0px_#FF3E00]"
