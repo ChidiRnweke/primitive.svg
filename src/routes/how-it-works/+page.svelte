@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { ArrowRight, Crosshair } from '@lucide/svelte';
+	import { ArrowRight } from '@lucide/svelte';
 	import RegistrationMark from '$lib/components/RegistrationMark.svelte';
+	import favicon from '$lib/assets/favicon.svg';
 
 	const steps = [
 		{
@@ -39,7 +40,7 @@
 	<header class="relative z-40 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
 		<div class="flex h-20 items-center justify-between px-6 md:px-12">
 			<a href={`${base}/`} class="flex items-center gap-3 transition-colors hover:text-[#FF3E00]">
-				<Crosshair size={24} class="text-[#FF3E00]" />
+				<img src={favicon} alt="Primitive.svg Logo" class="h-6 w-6 shrink-0" />
 				<span class="font-sans text-2xl font-bold tracking-tight uppercase">Primitive.svg</span>
 			</a>
 			<a

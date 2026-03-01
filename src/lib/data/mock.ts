@@ -100,7 +100,13 @@ export const createId = () => {
 	return Math.random().toString(36).slice(2, 11);
 };
 
-export const generateMockSVGCode = (name: string, variant = 0, styleTheme = 'technical', strokeColor = '#000000', highlight = '#FF3E00') => {
+export const generateMockSVGCode = (
+	name: string,
+	variant = 0,
+	styleTheme = 'technical',
+	strokeColor = '#000000',
+	highlight = '#FF3E00'
+) => {
 	const key = name.toLowerCase();
 	const lineWidth = styleTheme === 'minimal' ? 3 : 2;
 	const lineCap = styleTheme === 'minimal' ? 'round' : 'square';

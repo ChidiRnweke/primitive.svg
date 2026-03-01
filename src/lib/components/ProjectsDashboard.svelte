@@ -1,16 +1,8 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
-	import {
-		ArrowRight,
-		Crosshair,
-		FileText,
-		FolderOpen,
-		Key,
-		Plus,
-		Trash2,
-		HelpCircle
-	} from '@lucide/svelte';
+	import favicon from '$lib/assets/favicon.svg';
+	import { ArrowRight, FileText, FolderOpen, Key, Plus, Trash2, HelpCircle } from '@lucide/svelte';
 	import OpenRouterKeyModal from '$lib/components/OpenRouterKeyModal.svelte';
 	import { openRouterApiKeyStore } from '$lib/ai/factory';
 	import type { ProjectRecord } from '$lib/domain/types';
@@ -136,7 +128,7 @@
 		<div class="flex h-14 items-center justify-between px-6">
 			<div class="flex items-center gap-8">
 				<a class="flex cursor-pointer items-center gap-2" href={`${base}/`}>
-					<Crosshair size={20} class="text-[#FF3E00]" />
+					<img src={favicon} alt="Primitive.svg Logo" class="h-5 w-5 shrink-0" />
 					<span class="font-sans text-lg font-bold tracking-tight uppercase">Primitive.svg</span>
 				</a>
 				<a
