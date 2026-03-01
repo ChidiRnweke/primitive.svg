@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
 
 	onMount(() => {
-		void goto(`/projects/${data.id}/icons`);
+		void goto(`${base}/projects/${data.id}/icons`);
 	});
 </script>
 

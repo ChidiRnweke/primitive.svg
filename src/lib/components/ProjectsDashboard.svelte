@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import {
 		ArrowRight,
@@ -134,12 +135,12 @@
 	<header class="relative z-40 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
 		<div class="flex h-14 items-center justify-between px-6">
 			<div class="flex items-center gap-8">
-				<a class="flex cursor-pointer items-center gap-2" href="/">
+				<a class="flex cursor-pointer items-center gap-2" href={`${base}/`}>
 					<Crosshair size={20} class="text-[#FF3E00]" />
 					<span class="font-sans text-lg font-bold tracking-tight uppercase">Primitive.svg</span>
 				</a>
 				<a
-					href="/how-it-works"
+					href={`${base}/how-it-works`}
 					class="hidden font-mono text-[10px] font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00] md:block"
 				>
 					How it Works
@@ -180,7 +181,7 @@
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			<a
 				id="tour-new-project"
-				href="/projects/new"
+				href={`${base}/projects/new`}
 				class="group flex min-h-[280px] cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#0F0F0F]/30 bg-transparent p-12 transition-all hover:border-[#FF3E00] hover:bg-[#FF3E00]/5"
 			>
 				<div
@@ -207,7 +208,7 @@
 				{#each projects as project, index}
 					<a
 						id={index === 0 ? 'tour-demo-project' : undefined}
-						href={`/projects/${project.id}/icons`}
+						href={`${base}/projects/${project.id}/icons`}
 						class="group flex min-h-[280px] cursor-pointer flex-col border-2 border-[#0F0F0F] bg-white p-6 shadow-[4px_4px_0px_#0F0F0F] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#0F0F0F]"
 					>
 						<div class="mb-6 flex items-start justify-between">
@@ -292,14 +293,20 @@
 	onSaved={refreshApiKeyState}
 />
 
-<svelte:window onkeydown={(e) => { if (deletingProject && e.key === 'Escape' && !isDeletingProject) closeDeleteModal(); }} />
+<svelte:window
+	onkeydown={(e) => {
+		if (deletingProject && e.key === 'Escape' && !isDeletingProject) closeDeleteModal();
+	}}
+/>
 
 {#if deletingProject}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-[#0F0F0F]/80 p-4 backdrop-blur-sm fade-in"
-		onclick={(e) => { if (e.target === e.currentTarget && !isDeletingProject) closeDeleteModal(); }}
+		onclick={(e) => {
+			if (e.target === e.currentTarget && !isDeletingProject) closeDeleteModal();
+		}}
 	>
 		<div
 			class="flex w-full max-w-2xl flex-col border-2 border-[#0F0F0F] bg-[#F2F2F0] shadow-[8px_8px_0px_#FF3E00]"

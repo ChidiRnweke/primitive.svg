@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { ArrowRight, Crosshair, Key, Database, User } from '@lucide/svelte';
 	import { DEMOS, generateMockSVGCode } from '$lib/data/mock';
@@ -27,11 +28,14 @@
 				<span class="font-sans text-2xl font-bold tracking-tight uppercase">Primitive.svg</span>
 			</div>
 			<div class="flex items-center gap-8">
-				<a href="/how-it-works" class="hidden md:block font-mono text-xs font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00]">
+				<a
+					href={`${base}/how-it-works`}
+					class="hidden font-mono text-xs font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00] md:block"
+				>
 					How it Works
 				</a>
 				<a
-					href="/projects"
+					href={`${base}/projects`}
 					class="flex items-center gap-2 bg-[#0F0F0F] px-6 py-3 font-mono text-xs font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors hover:bg-[#FF3E00]"
 				>
 					Dashboard <ArrowRight size={14} />
@@ -71,7 +75,7 @@
 
 			<div>
 				<a
-					href="/projects"
+					href={`${base}/projects`}
 					class="mb-4 flex w-full items-center justify-center gap-3 border-2 border-transparent bg-[#FF3E00] px-8 py-5 font-mono text-sm font-bold tracking-widest text-white uppercase transition-colors hover:border-[#0F0F0F] hover:bg-[#0F0F0F] sm:w-auto"
 				>
 					Open Workspace <ArrowRight size={18} />
@@ -80,20 +84,22 @@
 					<div class="flex items-start gap-3">
 						<User size={16} class="mt-0.5 shrink-0 text-[#FF3E00]" />
 						<p class="max-w-sm font-mono text-xs">
-							<strong class="text-[#0F0F0F]">No Account Required.</strong> Jump straight in, no signup walls or waitlists.
+							<strong class="text-[#0F0F0F]">No Account Required.</strong> Jump straight in, no signup
+							walls or waitlists.
 						</p>
 					</div>
 					<div class="flex items-start gap-3">
 						<Key size={16} class="mt-0.5 shrink-0" />
 						<p class="max-w-sm font-mono text-xs">
-							<strong class="text-[#0F0F0F]">100% Free UI.</strong> Bring your own OpenRouter key to power generation.
+							<strong class="text-[#0F0F0F]">100% Free UI.</strong> Bring your own OpenRouter key to power
+							generation.
 						</p>
 					</div>
 					<div class="flex items-start gap-3">
 						<Database size={16} class="mt-0.5 shrink-0" />
 						<p class="max-w-sm font-mono text-xs">
-							<strong class="text-[#0F0F0F]">Zero-Backend Privacy.</strong> All prompts and SVGs are stored locally
-							on your device.
+							<strong class="text-[#0F0F0F]">Zero-Backend Privacy.</strong> All prompts and SVGs are stored
+							locally on your device.
 						</p>
 					</div>
 				</div>
@@ -150,4 +156,3 @@
 		</div>
 	</main>
 </div>
-

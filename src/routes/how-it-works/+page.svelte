@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { ArrowRight, Crosshair } from '@lucide/svelte';
 	import RegistrationMark from '$lib/components/RegistrationMark.svelte';
 
@@ -24,23 +25,25 @@
 		{
 			number: '04',
 			title: 'Local Privacy',
-			desc: 'Your data is yours. Prompts, keys, and assets are stored exclusively in your browser\'s local database.',
+			desc: "Your data is yours. Prompts, keys, and assets are stored exclusively in your browser's local database.",
 			icon: `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="square"><path d="M15 35 L35 35 L45 45 L85 45 L85 85 L15 85 Z" stroke="#0F0F0F" fill="white" /><line x1="15" y1="45" x2="85" y2="45" stroke="#0F0F0F" /><rect x="40" y="55" width="20" height="15" fill="#FF3E00" stroke="none" /><path d="M45 55 V48 A5 5 0 0 1 55 48 V55" stroke="#FF3E00" stroke-width="3" /></svg>`
 		}
 	];
 </script>
 
-<div class="relative flex min-h-screen flex-col overflow-hidden bg-[#F2F2F0] font-sans text-[#0F0F0F]">
+<div
+	class="relative flex min-h-screen flex-col overflow-hidden bg-[#F2F2F0] font-sans text-[#0F0F0F]"
+>
 	<div class="bg-drafting-grid pointer-events-none fixed inset-0 z-0 opacity-50"></div>
 
 	<header class="relative z-40 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
 		<div class="flex h-20 items-center justify-between px-6 md:px-12">
-			<a href="/" class="flex items-center gap-3 hover:text-[#FF3E00] transition-colors">
+			<a href={`${base}/`} class="flex items-center gap-3 transition-colors hover:text-[#FF3E00]">
 				<Crosshair size={24} class="text-[#FF3E00]" />
 				<span class="font-sans text-2xl font-bold tracking-tight uppercase">Primitive.svg</span>
 			</a>
 			<a
-				href="/projects"
+				href={`${base}/projects`}
 				class="flex items-center gap-2 bg-[#0F0F0F] px-6 py-3 font-mono text-xs font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors hover:bg-[#FF3E00]"
 			>
 				Open Workspace <ArrowRight size={14} />
@@ -48,43 +51,56 @@
 		</div>
 	</header>
 
-	<main class="relative z-10 flex flex-1 flex-col p-6 md:p-12 lg:p-20 items-center">
+	<main class="relative z-10 flex flex-1 flex-col items-center p-6 md:p-12 lg:p-20">
 		<RegistrationMark className="absolute top-10 right-10 opacity-20" />
 		<RegistrationMark className="absolute bottom-10 left-10 opacity-20" />
 
-		<div class="mb-24 max-w-4xl w-full text-center">
-			<div class="mb-6 inline-block border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase">
+		<div class="mb-24 w-full max-w-4xl text-center">
+			<div
+				class="mb-6 inline-block border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase"
+			>
 				Process Guide
 			</div>
 			<h1 class="mb-6 text-5xl font-bold tracking-tighter uppercase md:text-7xl">
 				How it <span class="text-[#FF3E00]">Works.</span>
 			</h1>
-			<p class="font-mono text-xl leading-relaxed text-[#0F0F0F]/70 max-w-2xl mx-auto">
-				Primitive.svg bridges the gap between natural language and precise vector graphics. 
-				A browser-based utility for design system scaffolding.
+			<p class="mx-auto max-w-2xl font-mono text-xl leading-relaxed text-[#0F0F0F]/70">
+				Primitive.svg bridges the gap between natural language and precise vector graphics. A
+				browser-based utility for design system scaffolding.
 			</p>
 		</div>
 
-		<div class="flex flex-col gap-16 md:gap-24 w-full max-w-5xl relative">
+		<div class="relative flex w-full max-w-5xl flex-col gap-16 md:gap-24">
 			<!-- Center line for larger screens to anchor the zig-zag -->
-			<div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-[#0F0F0F]/10 -translate-x-1/2"></div>
+			<div
+				class="absolute top-0 bottom-0 left-1/2 hidden w-0.5 -translate-x-1/2 bg-[#0F0F0F]/10 md:block"
+			></div>
 
 			{#each steps as step, i}
-				<div 
-					class="flex flex-col md:flex-row items-center gap-8 md:gap-16 opacity-0"
-					style="animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: {i * 0.2}s"
+				<div
+					class="flex flex-col items-center gap-8 opacity-0 md:flex-row md:gap-16"
+					style="animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; animation-delay: {i *
+						0.2}s"
 				>
 					{#if i % 2 === 0}
 						<!-- Left Side: Title & Icon -->
-						<div class="w-full md:w-1/2 flex flex-col sm:flex-row items-start sm:items-center gap-6 justify-end relative z-10">
+						<div
+							class="relative z-10 flex w-full flex-col items-start justify-end gap-6 sm:flex-row sm:items-center md:w-1/2"
+						>
 							<!-- Connector to center line -->
-							<div class="hidden md:block absolute top-1/2 -right-8 w-8 border-t-2 border-dashed border-[#0F0F0F]/20"></div>
-							
-							<div class="text-left sm:text-right order-2 sm:order-1">
-								<div class="font-mono text-xl font-bold text-[#FF3E00] mb-1">STEP {step.number}</div>
-								<h3 class="font-sans text-2xl md:text-3xl font-bold uppercase">{step.title}</h3>
+							<div
+								class="absolute top-1/2 -right-8 hidden w-8 border-t-2 border-dashed border-[#0F0F0F]/20 md:block"
+							></div>
+
+							<div class="order-2 text-left sm:order-1 sm:text-right">
+								<div class="mb-1 font-mono text-xl font-bold text-[#FF3E00]">
+									STEP {step.number}
+								</div>
+								<h3 class="font-sans text-2xl font-bold uppercase md:text-3xl">{step.title}</h3>
 							</div>
-							<div class="relative order-1 sm:order-2 h-24 w-24 md:h-28 md:w-28 shrink-0 border-2 border-[#0F0F0F] bg-white p-5 shadow-[6px_6px_0px_#0F0F0F] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#FF3E00]">
+							<div
+								class="relative order-1 h-24 w-24 shrink-0 border-2 border-[#0F0F0F] bg-white p-5 shadow-[6px_6px_0px_#0F0F0F] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#FF3E00] sm:order-2 md:h-28 md:w-28"
+							>
 								<RegistrationMark className="absolute top-1 left-1 opacity-20 w-3 h-3" />
 								<RegistrationMark className="absolute bottom-1 right-1 opacity-20 w-3 h-3" />
 								<div class="h-full w-full text-[#0F0F0F]">
@@ -93,7 +109,7 @@
 							</div>
 						</div>
 						<!-- Right Side: Text -->
-						<div class="w-full md:w-1/2 relative z-10">
+						<div class="relative z-10 w-full md:w-1/2">
 							<div class="border-l-4 border-[#FF3E00] bg-white p-6 shadow-sm">
 								<p class="font-mono text-base leading-relaxed text-[#0F0F0F]/80">
 									{step.desc}
@@ -102,18 +118,26 @@
 						</div>
 					{:else}
 						<!-- Left Side: Text -->
-						<div class="w-full md:w-1/2 order-2 md:order-1 relative z-10">
+						<div class="relative z-10 order-2 w-full md:order-1 md:w-1/2">
 							<!-- Connector to center line -->
-							<div class="hidden md:block absolute top-1/2 -right-16 w-8 border-t-2 border-dashed border-[#0F0F0F]/20"></div>
-							<div class="border-l-4 md:border-l-0 md:border-r-4 border-[#FF3E00] bg-white p-6 shadow-sm text-left md:text-right">
+							<div
+								class="absolute top-1/2 -right-16 hidden w-8 border-t-2 border-dashed border-[#0F0F0F]/20 md:block"
+							></div>
+							<div
+								class="border-l-4 border-[#FF3E00] bg-white p-6 text-left shadow-sm md:border-r-4 md:border-l-0 md:text-right"
+							>
 								<p class="font-mono text-base leading-relaxed text-[#0F0F0F]/80">
 									{step.desc}
 								</p>
 							</div>
 						</div>
 						<!-- Right Side: Title & Icon -->
-						<div class="w-full md:w-1/2 order-1 md:order-2 flex flex-col sm:flex-row items-start sm:items-center gap-6 justify-start relative z-10">
-							<div class="relative h-24 w-24 md:h-28 md:w-28 shrink-0 border-2 border-[#0F0F0F] bg-white p-5 shadow-[6px_6px_0px_#0F0F0F] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#FF3E00]">
+						<div
+							class="relative z-10 order-1 flex w-full flex-col items-start justify-start gap-6 sm:flex-row sm:items-center md:order-2 md:w-1/2"
+						>
+							<div
+								class="relative h-24 w-24 shrink-0 border-2 border-[#0F0F0F] bg-white p-5 shadow-[6px_6px_0px_#0F0F0F] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[10px_10px_0px_#FF3E00] md:h-28 md:w-28"
+							>
 								<RegistrationMark className="absolute top-1 left-1 opacity-20 w-3 h-3" />
 								<RegistrationMark className="absolute bottom-1 right-1 opacity-20 w-3 h-3" />
 								<div class="h-full w-full text-[#0F0F0F]">
@@ -121,8 +145,10 @@
 								</div>
 							</div>
 							<div class="text-left">
-								<div class="font-mono text-xl font-bold text-[#FF3E00] mb-1">STEP {step.number}</div>
-								<h3 class="font-sans text-2xl md:text-3xl font-bold uppercase">{step.title}</h3>
+								<div class="mb-1 font-mono text-xl font-bold text-[#FF3E00]">
+									STEP {step.number}
+								</div>
+								<h3 class="font-sans text-2xl font-bold uppercase md:text-3xl">{step.title}</h3>
 							</div>
 						</div>
 					{/if}
@@ -130,15 +156,17 @@
 			{/each}
 		</div>
 
-		<div class="mt-32 border-t-2 border-[#0F0F0F] pt-12 flex flex-col md:flex-row items-center justify-between gap-8 w-full max-w-4xl">
+		<div
+			class="mt-32 flex w-full max-w-4xl flex-col items-center justify-between gap-8 border-t-2 border-[#0F0F0F] pt-12 md:flex-row"
+		>
 			<div class="max-w-md text-center md:text-left">
-				<h4 class="font-sans text-xl font-bold uppercase mb-2">Ready to start?</h4>
+				<h4 class="mb-2 font-sans text-xl font-bold uppercase">Ready to start?</h4>
 				<p class="font-mono text-xs text-[#0F0F0F]/60">
 					Create your first icon set in under 60 seconds. No signup required.
 				</p>
 			</div>
 			<a
-				href="/projects/new"
+				href={`${base}/projects/new`}
 				class="flex items-center gap-3 bg-[#FF3E00] px-10 py-5 font-mono text-sm font-bold tracking-widest text-white uppercase transition-colors hover:bg-[#0F0F0F]"
 			>
 				New Specification <ArrowRight size={18} />
@@ -149,7 +177,13 @@
 
 <style>
 	@keyframes fade-in {
-		from { opacity: 0; transform: translateY(30px); }
-		to { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(30px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 </style>

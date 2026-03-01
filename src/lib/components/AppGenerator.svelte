@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import JSZip from 'jszip';
@@ -275,33 +276,68 @@
 			steps.push(
 				{
 					element: '#project-name',
-					popover: { title: 'Project Name', description: 'Give your design system a clear name.', side: 'bottom', align: 'start' }
+					popover: {
+						title: 'Project Name',
+						description: 'Give your design system a clear name.',
+						side: 'bottom',
+						align: 'start'
+					}
 				},
 				{
 					element: '#project-rules',
-					popover: { title: 'Aesthetic Rules', description: 'Define the visual style here (e.g. minimalist, 2px stroke, brutalist). This steers the AI.', side: 'bottom', align: 'start' }
+					popover: {
+						title: 'Aesthetic Rules',
+						description:
+							'Define the visual style here (e.g. minimalist, 2px stroke, brutalist). This steers the AI.',
+						side: 'bottom',
+						align: 'start'
+					}
 				}
 			);
 		} else if (step === 2 && !isResultsPage) {
 			steps.push(
 				{
 					element: '#tour-suggested-assets',
-					popover: { title: 'Suggested Assets', description: 'Select the icons you want to generate. You can add more manually or generate a batch based on a keyword.', side: 'bottom', align: 'start' }
+					popover: {
+						title: 'Suggested Assets',
+						description:
+							'Select the icons you want to generate. You can add more manually or generate a batch based on a keyword.',
+						side: 'bottom',
+						align: 'start'
+					}
 				},
 				{
 					element: '#tour-generate-btn',
-					popover: { title: 'Generate SVGs', description: 'Once you selected your icons, click here to render them using your connected AI model.', side: 'top', align: 'end' }
+					popover: {
+						title: 'Generate SVGs',
+						description:
+							'Once you selected your icons, click here to render them using your connected AI model.',
+						side: 'top',
+						align: 'end'
+					}
 				}
 			);
 		} else if (step === 3 || isResultsPage) {
 			steps.push(
 				{
 					element: '#tour-generated-vectors',
-					popover: { title: 'Generated Vectors', description: 'Here are your results. You can hover over any icon to edit its style or retry the generation.', side: 'bottom', align: 'start' }
+					popover: {
+						title: 'Generated Vectors',
+						description:
+							'Here are your results. You can hover over any icon to edit its style or retry the generation.',
+						side: 'bottom',
+						align: 'start'
+					}
 				},
 				{
 					element: '#tour-export-pack',
-					popover: { title: 'Export Pack', description: 'Download your entire icon set as a ZIP file in your preferred format (SVG, JSX, Svelte, Vue).', side: 'bottom', align: 'end' }
+					popover: {
+						title: 'Export Pack',
+						description:
+							'Download your entire icon set as a ZIP file in your preferred format (SVG, JSX, Svelte, Vue).',
+						side: 'bottom',
+						align: 'end'
+					}
 				}
 			);
 		}
@@ -375,7 +411,7 @@
 		currentProjectId = created.id;
 		if (navigateOnCreate) {
 			const suffix = isResultsPage ? 'results' : 'icons';
-			await goto(`/projects/${created.id}/${suffix}`);
+			await goto(`${base}/projects/${created.id}/${suffix}`);
 		}
 	};
 
@@ -490,7 +526,7 @@
 		if (!currentProjectId) {
 			return;
 		}
-		await goto(`/projects/${currentProjectId}/results`);
+		await goto(`${base}/projects/${currentProjectId}/results`);
 	};
 
 	const handleGenerate = async () => {
@@ -871,13 +907,13 @@
 
 	const goToIconsPage = async () => {
 		if (currentProjectId) {
-			await goto(`/projects/${currentProjectId}/icons`);
+			await goto(`${base}/projects/${currentProjectId}/icons`);
 		}
 	};
 
 	const goToResultsPage = async () => {
 		if (currentProjectId) {
-			await goto(`/projects/${currentProjectId}/results`);
+			await goto(`${base}/projects/${currentProjectId}/results`);
 		}
 	};
 
@@ -889,7 +925,11 @@
 		});
 </script>
 
-<svelte:window onkeydown={(e) => { if (remixingSvg && e.key === 'Escape') remixingSvg = null; }} />
+<svelte:window
+	onkeydown={(e) => {
+		if (remixingSvg && e.key === 'Escape') remixingSvg = null;
+	}}
+/>
 
 {#if isLoadingProject}
 	<div class="relative flex min-h-screen flex-col overflow-hidden bg-[#F2F2F0]">
@@ -931,7 +971,7 @@
 				No project with this ID exists in IndexedDB on this device.
 			</p>
 			<a
-				href="/projects"
+				href={`${base}/projects`}
 				class="inline-flex items-center justify-center bg-[#0F0F0F] px-6 py-3 font-mono text-xs font-bold tracking-widest text-white uppercase transition-colors hover:bg-[#FF3E00]"
 			>
 				Return to Workspace
@@ -946,7 +986,7 @@
 
 		<header class="relative z-40 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
 			<div class="flex h-14 items-center justify-between px-6">
-				<a class="flex cursor-pointer items-center gap-6" href="/projects">
+				<a class="flex cursor-pointer items-center gap-6" href={`${base}/projects`}>
 					<div
 						class="flex items-center gap-2 text-[#0F0F0F]/50 transition-colors hover:text-[#0F0F0F]"
 					>
@@ -1178,7 +1218,10 @@
 									</p>
 								</div>
 
-								<div id="tour-suggested-assets" class="border-2 border-[#0F0F0F] shadow-[4px_4px_0px_#0F0F0F]">
+								<div
+									id="tour-suggested-assets"
+									class="border-2 border-[#0F0F0F] shadow-[4px_4px_0px_#0F0F0F]"
+								>
 									<div
 										class="flex items-center justify-between border-b-2 border-[#0F0F0F] bg-[#F2F2F0] p-4"
 									>
@@ -1447,7 +1490,9 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class="fixed inset-0 z-50 flex items-center justify-center bg-[#0F0F0F]/80 p-4 backdrop-blur-sm fade-in"
-				onclick={(e) => { if (e.target === e.currentTarget) remixingSvg = null; }}
+				onclick={(e) => {
+					if (e.target === e.currentTarget) remixingSvg = null;
+				}}
 			>
 				<div
 					class="flex w-full max-w-3xl flex-col border-2 border-[#0F0F0F] bg-[#F2F2F0] shadow-[8px_8px_0px_#FF3E00]"
