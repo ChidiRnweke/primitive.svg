@@ -53,6 +53,7 @@
 	},
 	"dependencies": {
 		"@openrouter/sdk": "^0.9.11",
+		"driver.js": "^1.4.0",
 		"jszip": "^3.10.1"
 	}
 }

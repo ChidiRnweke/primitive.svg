@@ -152,3 +152,90 @@
 		transform: translateY(0);
 	}
 }
+
+/* Custom driver.js styling to match the brutalist theme */
+.driver-popover {
+	border: 2px solid #0f0f0f !important;
+	border-radius: 0 !important;
+	background-color: #ffffff !important;
+	box-shadow: 6px 6px 0px #ff3e00 !important;
+	padding: 24px !important;
+	font-family: inherit !important;
+}
+
+.driver-popover-title {
+	font-family: monospace !important;
+	font-size: 14px !important;
+	font-weight: 700 !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.1em !important;
+	color: #0f0f0f !important;
+	margin-bottom: 12px !important;
+}
+
+.driver-popover-description {
+	font-family: monospace !important;
+	font-size: 12px !important;
+	line-height: 1.6 !important;
+	color: rgba(15, 15, 15, 0.7) !important;
+}
+
+.driver-popover-footer {
+	margin-top: 20px !important;
+}
+
+.driver-popover-progress-text {
+	font-family: monospace !important;
+	font-size: 10px !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.1em !important;
+	color: rgba(15, 15, 15, 0.5) !important;
+}
+
+.driver-popover-navigation-btns {
+	gap: 8px !important;
+}
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+	border: 2px solid transparent !important;
+	border-radius: 0 !important;
+	background-color: #ff3e00 !important;
+	color: #ffffff !important;
+	font-family: monospace !important;
+	font-size: 10px !important;
+	font-weight: 700 !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.1em !important;
+	padding: 8px 16px !important;
+	text-shadow: none !important;
+	transition: all 0.2s !important;
+}
+
+.driver-popover-prev-btn {
+	background-color: transparent !important;
+	color: #0f0f0f !important;
+	border-color: #0f0f0f !important;
+}
+
+.driver-popover-prev-btn:hover {
+	background-color: #f2f2f0 !important;
+}
+
+.driver-popover-next-btn:hover {
+	background-color: #0f0f0f !important;
+	border-color: #0f0f0f !important;
+}
+
+.driver-popover-close-btn {
+	color: rgba(15, 15, 15, 0.4) !important;
+	transition: color 0.2s !important;
+}
+
+.driver-popover-close-btn:hover {
+	color: #ff3e00 !important;
+}
+
+.driver-popover-arrow {
+	border-color: #0f0f0f !important;
+}

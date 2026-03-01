@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ArrowRight, Crosshair, Key } from '@lucide/svelte';
+	import { ArrowRight, Crosshair, Key, Database, User } from '@lucide/svelte';
 	import { DEMOS, generateMockSVGCode } from '$lib/data/mock';
 	import RegistrationMark from '$lib/components/RegistrationMark.svelte';
 
@@ -26,12 +26,17 @@
 				<Crosshair size={24} class="text-[#FF3E00]" />
 				<span class="font-sans text-2xl font-bold tracking-tight uppercase">Primitive.svg</span>
 			</div>
-			<a
-				href="/projects"
-				class="flex items-center gap-2 bg-[#0F0F0F] px-6 py-3 font-mono text-xs font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors hover:bg-[#FF3E00]"
-			>
-				Dashboard <ArrowRight size={14} />
-			</a>
+			<div class="flex items-center gap-8">
+				<a href="/how-it-works" class="hidden md:block font-mono text-xs font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00]">
+					How it Works
+				</a>
+				<a
+					href="/projects"
+					class="flex items-center gap-2 bg-[#0F0F0F] px-6 py-3 font-mono text-xs font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors hover:bg-[#FF3E00]"
+				>
+					Dashboard <ArrowRight size={14} />
+				</a>
+			</div>
 		</div>
 	</header>
 
@@ -44,13 +49,20 @@
 			<RegistrationMark className="absolute bottom-6 left-6 opacity-20" />
 			<RegistrationMark className="absolute bottom-6 right-6 opacity-20" />
 
-			<div
-				class="mb-8 inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase"
-			>
-				AI SVG Generation
+			<div class="mb-8 flex gap-2">
+				<div
+					class="inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase"
+				>
+					AI SVG Generation
+				</div>
+				<div
+					class="inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-[#FF3E00] uppercase"
+				>
+					Local-First
+				</div>
 			</div>
-			<h1 class="mb-8 text-6xl leading-[0.9] font-bold tracking-tighter uppercase md:text-8xl">
-				Design <br /> Systems <br /> On Demand.
+			<h1 class="mb-8 text-6xl leading-[0.9] font-bold tracking-tighter uppercase md:text-7xl">
+				Brand-consistent <br /> SVG icons <br /> On Demand.
 			</h1>
 			<p class="mb-12 max-w-md font-mono text-xl leading-relaxed text-[#0F0F0F]/70">
 				Stop searching for matching icons. Describe your project and aesthetic to generate a
@@ -64,11 +76,26 @@
 				>
 					Open Workspace <ArrowRight size={18} />
 				</a>
-				<div class="flex items-start gap-3 text-[#0F0F0F]/60">
-					<Key size={16} class="mt-0.5" />
-					<p class="max-w-sm font-mono text-xs">
-						<strong>100% Free UI.</strong> Bring your own OpenRouter key to power generation.
-					</p>
+				<div class="mt-5 flex flex-col gap-3 text-[#0F0F0F]/70">
+					<div class="flex items-start gap-3">
+						<User size={16} class="mt-0.5 shrink-0 text-[#FF3E00]" />
+						<p class="max-w-sm font-mono text-xs">
+							<strong class="text-[#0F0F0F]">No Account Required.</strong> Jump straight in, no signup walls or waitlists.
+						</p>
+					</div>
+					<div class="flex items-start gap-3">
+						<Key size={16} class="mt-0.5 shrink-0" />
+						<p class="max-w-sm font-mono text-xs">
+							<strong class="text-[#0F0F0F]">100% Free UI.</strong> Bring your own OpenRouter key to power generation.
+						</p>
+					</div>
+					<div class="flex items-start gap-3">
+						<Database size={16} class="mt-0.5 shrink-0" />
+						<p class="max-w-sm font-mono text-xs">
+							<strong class="text-[#0F0F0F]">Zero-Backend Privacy.</strong> All prompts and SVGs are stored locally
+							on your device.
+						</p>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -113,7 +140,7 @@
 									{icon}
 								</div>
 								<div class="h-full w-full text-white">
-									{@html generateMockSVGCode(icon, i, DEMOS[demoStep].style)}
+									{@html generateMockSVGCode(icon, i, DEMOS[demoStep].style, '#F7F5F2')}
 								</div>
 							</div>
 						{/each}
@@ -123,3 +150,4 @@
 		</div>
 	</main>
 </div>
+

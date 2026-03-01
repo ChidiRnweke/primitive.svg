@@ -1,9 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { ArrowRight, Crosshair, FileText, FolderOpen, Key, Plus, Trash2 } from '@lucide/svelte';
+	import {
+		ArrowRight,
+		Crosshair,
+		FileText,
+		FolderOpen,
+		Key,
+		Plus,
+		Trash2,
+		HelpCircle
+	} from '@lucide/svelte';
 	import OpenRouterKeyModal from '$lib/components/OpenRouterKeyModal.svelte';
 	import { openRouterApiKeyStore } from '$lib/ai/factory';
 	import type { ProjectRecord } from '$lib/domain/types';
+	import { driver } from 'driver.js';
+	import 'driver.js/dist/driver.css';
 
 	interface Props {
 		projects: ProjectRecord[];
@@ -63,7 +74,56 @@
 		}
 	};
 
-	onMount(refreshApiKeyState);
+	const startTour = () => {
+		const driverObj = driver({
+			showProgress: true,
+			steps: [
+				{
+					element: '#tour-api-key',
+					popover: {
+						title: 'API Key',
+						description:
+							'Primitive.svg requires an OpenRouter API key to generate SVGs. <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" class="text-[#FF3E00] underline font-bold">Create a key here</a>. It is stored locally in your browser.',
+						side: 'bottom',
+						align: 'end'
+					}
+				},
+				{
+					element: '#tour-new-project',
+					popover: {
+						title: 'New Specification',
+						description:
+							'Click here to start a new design system from scratch. You will define the prompt and generate icons.',
+						side: 'right',
+						align: 'start'
+					}
+				},
+				{
+					element: '#tour-demo-project',
+					popover: {
+						title: 'Demo Projects',
+						description:
+							'Explore these pre-generated demo projects to see what Primitive.svg can do. You can edit them, but keep in mind they are just examples!',
+						side: 'left',
+						align: 'start'
+					}
+				}
+			]
+		});
+		driverObj.drive();
+	};
+
+	onMount(() => {
+		refreshApiKeyState();
+
+		// Optional: Auto-start tour if no API key is set and it's their first time
+		if (!hasApiKey && localStorage.getItem('primitive_tour_seen') !== 'true') {
+			setTimeout(() => {
+				startTour();
+				localStorage.setItem('primitive_tour_seen', 'true');
+			}, 1000);
+		}
+	});
 </script>
 
 <div
@@ -73,14 +133,29 @@
 
 	<header class="relative z-40 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
 		<div class="flex h-14 items-center justify-between px-6">
-			<a class="flex cursor-pointer items-center gap-6" href="/">
-				<div class="flex items-center gap-2">
+			<div class="flex items-center gap-8">
+				<a class="flex cursor-pointer items-center gap-2" href="/">
 					<Crosshair size={20} class="text-[#FF3E00]" />
 					<span class="font-sans text-lg font-bold tracking-tight uppercase">Primitive.svg</span>
-				</div>
-			</a>
+				</a>
+				<a
+					href="/how-it-works"
+					class="hidden font-mono text-[10px] font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00] md:block"
+				>
+					How it Works
+				</a>
+			</div>
 			<div class="flex items-center gap-4">
 				<button
+					type="button"
+					onclick={startTour}
+					class="text-[#0F0F0F]/60 transition-colors hover:text-[#FF3E00]"
+					title="Show Help Tour"
+				>
+					<HelpCircle size={20} />
+				</button>
+				<button
+					id="tour-api-key"
 					type="button"
 					onclick={() => (isKeyModalOpen = true)}
 					class={`flex items-center gap-2 border-2 border-[#0F0F0F] px-4 py-2 font-mono text-[10px] font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors ${hasApiKey ? 'bg-[#FF3E00] hover:bg-[#0F0F0F]' : 'bg-[#0F0F0F] hover:bg-[#FF3E00]'}`}
@@ -104,6 +179,7 @@
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			<a
+				id="tour-new-project"
 				href="/projects/new"
 				class="group flex min-h-[280px] cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#0F0F0F]/30 bg-transparent p-12 transition-all hover:border-[#FF3E00] hover:bg-[#FF3E00]/5"
 			>
@@ -128,14 +204,38 @@
 					Loading projects...
 				</div>
 			{:else}
-				{#each projects as project}
+				{#each projects as project, index}
 					<a
+						id={index === 0 ? 'tour-demo-project' : undefined}
 						href={`/projects/${project.id}/icons`}
 						class="group flex min-h-[280px] cursor-pointer flex-col border-2 border-[#0F0F0F] bg-white p-6 shadow-[4px_4px_0px_#0F0F0F] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#0F0F0F]"
 					>
 						<div class="mb-6 flex items-start justify-between">
-							<div class="border border-[#0F0F0F] bg-[#F2F2F0] p-2">
-								<FolderOpen size={20} class="text-[#FF3E00]" />
+							<div class="relative">
+								{#if project.generatedSVGs && project.generatedSVGs.length > 0}
+									<div
+										class="grid h-12 w-12 grid-cols-2 gap-1 border border-[#0F0F0F] bg-[#1A1A1A] p-1"
+									>
+										{#each project.generatedSVGs.slice(0, 4) as svg}
+											<div
+												class="flex h-full w-full items-center justify-center text-white"
+												title={svg.name}
+											>
+												{@html svg.code}
+											</div>
+										{/each}
+									</div>
+								{:else}
+									<div class="border border-[#0F0F0F] bg-[#F2F2F0] p-2">
+										<FolderOpen size={20} class="text-[#FF3E00]" />
+									</div>
+								{/if}
+								{#if ['1', '2', '3'].includes(project.id)}
+									<span
+										class="absolute -top-3 -right-6 rotate-12 border border-[#0F0F0F] bg-[#FF3E00] px-2 py-0.5 font-mono text-[9px] font-bold text-white shadow-sm"
+										>DEMO</span
+									>
+								{/if}
 							</div>
 							<div class="flex items-center gap-3">
 								<span

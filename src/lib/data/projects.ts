@@ -1,10 +1,18 @@
 import { browser } from '$app/environment';
 import type { GeneratedSvg, ProjectRecord } from '$lib/domain/types';
-import { MOCK_PROJECTS, createId, inferSuggestions, toDateStamp } from '$lib/data/mock';
+import {
+	MOCK_PROJECTS,
+	DEMOS,
+	createId,
+	inferSuggestions,
+	inferStyleTheme,
+	generateMockSVGCode,
+	toDateStamp
+} from '$lib/data/mock';
 
 const DB_NAME = 'primitive-svg-db';
 const STORE_NAME = 'projects';
-const DB_VERSION = 1;
+const DB_VERSION = 4;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -20,9 +28,10 @@ const openDb = () => {
 			request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB'));
 			request.onupgradeneeded = () => {
 				const db = request.result;
-				if (!db.objectStoreNames.contains(STORE_NAME)) {
-					db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+				if (db.objectStoreNames.contains(STORE_NAME)) {
+					db.deleteObjectStore(STORE_NAME);
 				}
+				db.createObjectStore(STORE_NAME, { keyPath: 'id' });
 			};
 			request.onsuccess = () => resolve(request.result);
 		});
@@ -63,12 +72,29 @@ const seedIfEmpty = async () => {
 	const seeded: ProjectRecord[] = MOCK_PROJECTS.map((project) => {
 		const suggested = inferSuggestions(project.name, project.desc);
 		const selected = suggested.slice(0, 3);
+		const styleTheme = inferStyleTheme(project.desc);
+
+		const demoMatch = DEMOS.find((d) => d.name === project.name);
+		const demoIcons = demoMatch?.icons || selected;
+		const generatedSVGs: GeneratedSvg[] = demoIcons.map((iconName) => ({
+			id: createId(),
+			name: iconName,
+			code: generateMockSVGCode(iconName, 0, styleTheme),
+			status: 'done',
+			variant: 0,
+			styleControls: {
+				palette: ['#000000', '#FF3E00'],
+				strokeWidth: styleTheme === 'minimal' ? 3 : 2
+			},
+			retryHistory: []
+		}));
 
 		return {
 			...project,
+			iconCount: generatedSVGs.length,
 			suggestedIcons: suggested,
 			selectedIcons: selected,
-			generatedSVGs: []
+			generatedSVGs
 		};
 	});
 

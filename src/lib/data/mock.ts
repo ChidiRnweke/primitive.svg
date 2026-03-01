@@ -31,16 +31,6 @@ export const MOCK_PROJECTS: Omit<
 	'suggestedIcons' | 'selectedIcons' | 'generatedSVGs'
 >[] = [
 	{
-		id: '1',
-		modelId: DEFAULT_MODEL_ID,
-		name: 'EcoShop Mobile App',
-		desc: 'Organic, leafy shapes, soft minimal lines, friendly.',
-		iconCount: 14,
-		lastEdited: '2024-10-24',
-		createdAt: '2024-10-24T09:00:00.000Z',
-		updatedAt: '2024-10-24T09:00:00.000Z'
-	},
-	{
 		id: '2',
 		modelId: DEFAULT_MODEL_ID,
 		name: 'DevTools Pro Interface',
@@ -49,16 +39,6 @@ export const MOCK_PROJECTS: Omit<
 		lastEdited: '2024-10-22',
 		createdAt: '2024-10-22T08:00:00.000Z',
 		updatedAt: '2024-10-22T08:00:00.000Z'
-	},
-	{
-		id: '3',
-		modelId: DEFAULT_MODEL_ID,
-		name: 'Personal Portfolio',
-		desc: 'High contrast, bold, brutalist primitives.',
-		iconCount: 8,
-		lastEdited: '2024-10-15',
-		createdAt: '2024-10-15T10:00:00.000Z',
-		updatedAt: '2024-10-15T10:00:00.000Z'
 	}
 ];
 
@@ -120,10 +100,8 @@ export const createId = () => {
 	return Math.random().toString(36).slice(2, 11);
 };
 
-export const generateMockSVGCode = (name: string, variant = 0, styleTheme = 'technical') => {
+export const generateMockSVGCode = (name: string, variant = 0, styleTheme = 'technical', strokeColor = '#000000', highlight = '#FF3E00') => {
 	const key = name.toLowerCase();
-	const strokeColor = '#F7F5F2';
-	const highlight = '#FF3E00';
 	const lineWidth = styleTheme === 'minimal' ? 3 : 2;
 	const lineCap = styleTheme === 'minimal' ? 'round' : 'square';
 	const lineJoin = styleTheme === 'minimal' ? 'round' : 'miter';
