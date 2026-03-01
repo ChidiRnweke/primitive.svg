@@ -41,6 +41,15 @@
 		normalizeSvgWithStyleVariables,
 		styleControlsToCssVars
 	} from '$lib/svg/styleControls';
+	import {
+		exportFormatExtension,
+		exportFormatLabel,
+		svgToJsxComponent,
+		svgToSvelteComponent,
+		svgToVueComponent,
+		toComponentName
+	} from '$lib/svg/exportFormats';
+	import type { ExportFormat } from '$lib/svg/exportFormats';
 
 	interface Props {
 		projectId?: string | null;
@@ -88,6 +97,7 @@
 	let modelListError = $state('');
 	let remixColors = $state<string[]>(['#0F0F0F', '#FF3E00']);
 	let remixStrokeWidth = $state(2);
+	let exportFormat = $state<ExportFormat>('svg');
 
 	const aiServices = createAiServices();
 	const isIconsPage = $derived(view === 'icons');
@@ -690,6 +700,18 @@
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-+|-+$/g, '') || 'icon';
 
+	const toUniqueFileName = (baseName: string, extension: string, used = new Set<string>()) => {
+		let candidate = `${baseName}${extension}`;
+		let index = 1;
+		while (used.has(candidate)) {
+			candidate = `${baseName}-${index}${extension}`;
+			index += 1;
+		}
+
+		used.add(candidate);
+		return candidate;
+	};
+
 	const handleExportPack = async () => {
 		const doneSvgs = generatedSVGs.filter(
 			(svg) => svg.status === 'done' && svg.code.trim().length > 0
@@ -706,6 +728,7 @@
 				projectName: appName,
 				projectDescription: appDesc,
 				modelId: selectedModelId,
+				exportFormat,
 				exportedAt: new Date().toISOString(),
 				iconCount: doneSvgs.length,
 				selectedIcons: Array.from(selectedIcons)
@@ -717,22 +740,47 @@
 				throw new Error('Failed to initialize zip folder');
 			}
 
+			const extension = exportFormatExtension(exportFormat);
+			const usedFileNames = new Set<string>();
+
 			for (const svg of doneSvgs) {
-				const iconName = toSafeFileName(svg.name);
-				iconsFolder.file(`${iconName}.svg`, svg.code);
+				const rawName =
+					exportFormat === 'svg' ? toSafeFileName(svg.name) : toComponentName(svg.name);
+				const fileName = toUniqueFileName(rawName, extension, usedFileNames);
+
+				if (exportFormat === 'svg') {
+					iconsFolder.file(fileName, svg.code);
+					continue;
+				}
+
+				if (exportFormat === 'jsx') {
+					iconsFolder.file(fileName, svgToJsxComponent(svg.name, svg.code));
+					continue;
+				}
+
+				if (exportFormat === 'svelte') {
+					iconsFolder.file(fileName, svgToSvelteComponent(svg.code));
+					continue;
+				}
+
+				iconsFolder.file(fileName, svgToVueComponent(svg.code));
 			}
 
 			const blob = await zip.generateAsync({ type: 'blob' });
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement('a');
 			link.href = url;
-			link.download = `${toSafeFileName(appName)}-pack.zip`;
+			const exportSuffix = exportFormat === 'svg' ? '' : `-${exportFormat}`;
+			link.download = `${toSafeFileName(appName)}${exportSuffix}-pack.zip`;
 			document.body.appendChild(link);
 			link.click();
 			link.remove();
 			URL.revokeObjectURL(url);
 
-			setActionNotice(`Exported ${doneSvgs.length} SVG files as zip.`, 'success');
+			setActionNotice(
+				`Exported ${doneSvgs.length} ${exportFormatLabel(exportFormat)} files as zip.`,
+				'success'
+			);
 		} catch (error) {
 			setActionNotice(
 				error instanceof Error ? error.message : 'Failed to export zip pack.',
@@ -1186,14 +1234,31 @@
 											Generate SVGs
 										</button>
 									{:else if !isGenerating}
-										<button
-											type="button"
-											onclick={() => void handleExportPack()}
-											disabled={generatedSVGs.filter((svg) => svg.status === 'done').length === 0}
-											class="flex items-center gap-2 border-2 border-[#0F0F0F] bg-white px-4 py-2 font-mono text-[10px] font-bold tracking-widest uppercase shadow-[2px_2px_0px_#0F0F0F] transition-colors hover:text-[#FF3E00] disabled:opacity-40"
-										>
-											<Download size={14} /> Export Pack
-										</button>
+										<div class="flex items-center gap-3">
+											<label
+												for="export-format"
+												class="font-mono text-[10px] font-bold tracking-widest uppercase"
+												>Format</label
+											>
+											<select
+												id="export-format"
+												bind:value={exportFormat}
+												class="border-2 border-[#0F0F0F] bg-white px-2 py-2 font-mono text-[10px] font-bold tracking-widest uppercase"
+											>
+												<option value="svg">.svg</option>
+												<option value="jsx">.jsx</option>
+												<option value="svelte">.svelte</option>
+												<option value="vue">.vue</option>
+											</select>
+											<button
+												type="button"
+												onclick={() => void handleExportPack()}
+												disabled={generatedSVGs.filter((svg) => svg.status === 'done').length === 0}
+												class="flex items-center gap-2 border-2 border-[#0F0F0F] bg-white px-4 py-2 font-mono text-[10px] font-bold tracking-widest uppercase shadow-[2px_2px_0px_#0F0F0F] transition-colors hover:text-[#FF3E00] disabled:opacity-40"
+											>
+												<Download size={14} /> Export Pack
+											</button>
+										</div>
 									{/if}
 								</div>
 
