@@ -54,18 +54,6 @@
 			<RegistrationMark className="absolute bottom-6 left-6 opacity-20" />
 			<RegistrationMark className="absolute bottom-6 right-6 opacity-20" />
 
-			<div class="mb-8 flex gap-2">
-				<div
-					class="inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase"
-				>
-					AI SVG Generation
-				</div>
-				<div
-					class="inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-[#FF3E00] uppercase"
-				>
-					Local-First
-				</div>
-			</div>
 			<h1 class="mb-8 text-6xl leading-[0.9] font-bold tracking-tighter uppercase md:text-7xl">
 				Brand-consistent <br /> SVG icons <br /> On Demand.
 			</h1>
