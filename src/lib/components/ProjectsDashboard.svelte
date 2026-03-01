@@ -83,10 +83,10 @@
 				<button
 					type="button"
 					onclick={() => (isKeyModalOpen = true)}
-					class="flex items-center gap-2 border-2 border-[#0F0F0F] bg-white px-4 py-2 font-mono text-[10px] font-bold tracking-widest uppercase transition-colors hover:text-[#FF3E00]"
+					class={`flex items-center gap-2 border-2 border-[#0F0F0F] px-4 py-2 font-mono text-[10px] font-bold tracking-widest text-[#F2F2F0] uppercase transition-colors ${hasApiKey ? 'bg-[#FF3E00] hover:bg-[#0F0F0F]' : 'bg-[#0F0F0F] hover:bg-[#FF3E00]'}`}
 				>
 					<Key size={12} />
-					{hasApiKey ? 'API Key Ready' : 'Set API Key'}
+					{hasApiKey ? 'API Key Connected' : 'Set API Key'}
 				</button>
 			</div>
 		</div>

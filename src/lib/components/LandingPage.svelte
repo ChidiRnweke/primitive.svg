@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { ArrowRight, Crosshair, Key } from '@lucide/svelte';
 	import { DEMOS, generateMockSVGCode } from '$lib/data/mock';
+	import RegistrationMark from '$lib/components/RegistrationMark.svelte';
 
 	let demoStep = $state(0);
 
@@ -36,8 +37,13 @@
 
 	<main class="relative z-10 flex flex-1 flex-col lg:flex-row">
 		<div
-			class="flex w-full flex-col justify-center border-b-2 border-[#0F0F0F] p-6 md:p-12 lg:w-1/2 lg:border-r-2 lg:border-b-0 lg:p-20"
+			class="relative flex w-full flex-col justify-center border-b-2 border-[#0F0F0F] p-6 md:p-12 lg:w-1/2 lg:border-r-2 lg:border-b-0 lg:p-20"
 		>
+			<RegistrationMark className="absolute top-6 left-6 opacity-20" />
+			<RegistrationMark className="absolute top-6 right-6 opacity-20" />
+			<RegistrationMark className="absolute bottom-6 left-6 opacity-20" />
+			<RegistrationMark className="absolute bottom-6 right-6 opacity-20" />
+
 			<div
 				class="mb-8 inline-block w-fit border border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[10px] font-bold tracking-widest uppercase"
 			>
@@ -74,10 +80,10 @@
 
 			<div class="relative z-10 mx-auto w-full max-w-lg">
 				<div
-					class="mb-8 border border-[#333] bg-[#1A1A1A] p-6 shadow-2xl transition-all duration-500"
+					class="mb-8 border border-[#4A4A4A] bg-[#1A1A1A] p-6 shadow-2xl transition-all duration-500"
 				>
-					<div class="mb-4 border-b border-[#333] pb-4">
-						<span class="mb-1 block font-mono text-[10px] tracking-widest text-[#666] uppercase"
+					<div class="mb-4 border-b border-[#4A4A4A] pb-4">
+						<span class="mb-1 block font-mono text-[10px] tracking-widest text-[#CFCBC4] uppercase"
 							>Project Name</span
 						>
 						<p class="text-xl font-bold text-white">{DEMOS[demoStep].name}</p>
@@ -94,23 +100,25 @@
 					</div>
 				</div>
 
-				<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
-					{#each DEMOS[demoStep].icons as icon, i}
-						<div
-							class="relative aspect-square border border-[#333] bg-[#1A1A1A] p-6 fade-in"
-							style={`animation-delay: ${i * 0.1}s`}
-						>
+				{#key demoStep}
+					<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+						{#each DEMOS[demoStep].icons as icon, i}
 							<div
-								class="absolute top-2 left-2 w-[80%] truncate font-mono text-[8px] text-[#666] uppercase"
+								class="relative aspect-square border border-[#333] bg-[#1A1A1A] p-6 fade-in"
+								style={`animation-delay: ${i * 0.1}s`}
 							>
-								{icon}
+								<div
+									class="absolute top-2 left-2 w-[80%] truncate font-mono text-[8px] text-[#E5E0D8] uppercase"
+								>
+									{icon}
+								</div>
+								<div class="h-full w-full text-white">
+									{@html generateMockSVGCode(icon, i, DEMOS[demoStep].style)}
+								</div>
 							</div>
-							<div class="h-full w-full text-white">
-								{@html generateMockSVGCode(icon, i, DEMOS[demoStep].style)}
-							</div>
-						</div>
-					{/each}
-				</div>
+						{/each}
+					</div>
+				{/key}
 			</div>
 		</div>
 	</main>

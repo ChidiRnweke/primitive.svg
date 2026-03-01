@@ -52,6 +52,7 @@
 		"vitest-browser-svelte": "^2.0.2"
 	},
 	"dependencies": {
-		"@openrouter/sdk": "^0.9.11"
+		"@openrouter/sdk": "^0.9.11",
+		"jszip": "^3.10.1"
 	}
 }

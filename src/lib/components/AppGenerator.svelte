@@ -1,6 +1,11 @@
+<script module lang="ts">
+	const projectViewCache = new Map<string, unknown>();
+</script>
+
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import JSZip from 'jszip';
 	import {
 		CheckSquare,
 		Code,
@@ -43,6 +48,12 @@
 	}
 
 	let { projectId = null, view = 'all' }: Props = $props();
+	const getInitialProjectId = () => projectId;
+	const initialProjectId = getInitialProjectId();
+	let initialCachedProject: ProjectRecord | undefined;
+	if (initialProjectId) {
+		initialCachedProject = projectViewCache.get(initialProjectId) as ProjectRecord | undefined;
+	}
 
 	let step = $state(1);
 	let appName = $state('');
@@ -81,6 +92,11 @@
 	const aiServices = createAiServices();
 	const isIconsPage = $derived(view === 'icons');
 	const isResultsPage = $derived(view === 'results');
+
+	if (initialProjectId) {
+		currentProjectId = initialProjectId;
+		isLoadingProject = !initialCachedProject;
+	}
 
 	const ERROR_SVG = `
 		<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
@@ -208,6 +224,10 @@
 	};
 
 	const hydrateFromProject = (project: ProjectRecord) => {
+		if (project.id) {
+			projectViewCache.set(project.id, project);
+		}
+
 		selectedModelId = project.modelId;
 		if (!availableModels.some((model) => model.id === project.modelId)) {
 			availableModels = [
@@ -226,14 +246,14 @@
 		selectedIcons = new Set(project.selectedIcons);
 		generatedSVGs = project.generatedSVGs.map(ensureSvgDefaults);
 
-		if (project.generatedSVGs.length > 0) {
-			step = 3;
-		} else if (project.suggestedIcons.length > 0) {
-			step = 2;
-		} else {
-			step = 1;
-		}
+		const inferredStep =
+			project.generatedSVGs.length > 0 ? 3 : project.suggestedIcons.length > 0 ? 2 : 1;
+		step = isIconsPage ? 2 : isResultsPage ? 3 : inferredStep;
 	};
+
+	if (initialCachedProject) {
+		hydrateFromProject(initialCachedProject);
+	}
 
 	onMount(async () => {
 		refreshApiKeyState();
@@ -241,12 +261,20 @@
 			await loadModels();
 		}
 
-		currentProjectId = projectId;
 		if (!currentProjectId) {
+			step = isResultsPage ? 3 : 1;
 			return;
 		}
 
-		isLoadingProject = true;
+		const cached =
+			initialCachedProject ??
+			(projectViewCache.get(currentProjectId) as ProjectRecord | undefined) ??
+			undefined;
+		if (cached && !initialCachedProject) {
+			hydrateFromProject(cached);
+		}
+
+		isLoadingProject = !cached;
 		const existing = await getProjectById(currentProjectId);
 		isLoadingProject = false;
 
@@ -656,6 +684,63 @@
 		}
 	};
 
+	const toSafeFileName = (value: string) =>
+		value
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '') || 'icon';
+
+	const handleExportPack = async () => {
+		const doneSvgs = generatedSVGs.filter(
+			(svg) => svg.status === 'done' && svg.code.trim().length > 0
+		);
+		if (doneSvgs.length === 0) {
+			setActionNotice('No generated SVGs available for export.', 'error');
+			return;
+		}
+
+		try {
+			const zip = new JSZip();
+			const meta = {
+				projectId: currentProjectId,
+				projectName: appName,
+				projectDescription: appDesc,
+				modelId: selectedModelId,
+				exportedAt: new Date().toISOString(),
+				iconCount: doneSvgs.length,
+				selectedIcons: Array.from(selectedIcons)
+			};
+
+			zip.file('manifest.json', JSON.stringify(meta, null, 2));
+			const iconsFolder = zip.folder('icons');
+			if (!iconsFolder) {
+				throw new Error('Failed to initialize zip folder');
+			}
+
+			for (const svg of doneSvgs) {
+				const iconName = toSafeFileName(svg.name);
+				iconsFolder.file(`${iconName}.svg`, svg.code);
+			}
+
+			const blob = await zip.generateAsync({ type: 'blob' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = `${toSafeFileName(appName)}-pack.zip`;
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			URL.revokeObjectURL(url);
+
+			setActionNotice(`Exported ${doneSvgs.length} SVG files as zip.`, 'success');
+		} catch (error) {
+			setActionNotice(
+				error instanceof Error ? error.message : 'Failed to export zip pack.',
+				'error'
+			);
+		}
+	};
+
 	const handleApiKeySaved = () => {
 		refreshApiKeyState();
 		generationError = '';
@@ -701,11 +786,33 @@
 </script>
 
 {#if isLoadingProject}
-	<div class="bg-drafting-grid flex min-h-screen items-center justify-center bg-[#F2F2F0] p-8">
+	<div class="relative flex min-h-screen flex-col overflow-hidden bg-[#F2F2F0]">
+		<div class="bg-drafting-grid pointer-events-none fixed inset-0 z-0"></div>
+		<header class="relative z-10 border-b-2 border-[#0F0F0F] bg-[#F2F2F0]">
+			<div class="flex h-14 items-center justify-between px-6">
+				<div class="h-4 w-28 animate-pulse bg-[#0F0F0F]/20"></div>
+				<div class="h-8 w-40 animate-pulse bg-[#0F0F0F]/20"></div>
+			</div>
+		</header>
 		<div
-			class="border-2 border-[#0F0F0F] bg-white px-8 py-6 font-mono text-xs font-bold tracking-widest uppercase"
+			class="relative z-10 mx-auto flex w-full max-w-[1600px] flex-1 border-x-2 border-[#0F0F0F] bg-white"
 		>
-			Loading project...
+			<aside class="w-[320px] shrink-0 border-r-2 border-[#0F0F0F] bg-[#F9F9F9] p-6">
+				<div class="h-5 w-24 animate-pulse bg-[#0F0F0F]/20"></div>
+				<div class="mt-4 h-8 w-full animate-pulse bg-[#0F0F0F]/10"></div>
+				<div class="mt-2 h-20 w-full animate-pulse bg-[#0F0F0F]/10"></div>
+			</aside>
+			<div class="flex-1 p-8">
+				<div class="h-8 w-64 animate-pulse bg-[#0F0F0F]/20"></div>
+				<div class="mt-6 grid grid-cols-2 gap-6 md:grid-cols-3">
+					{#each Array.from({ length: 6 }) as _, index}
+						<div
+							class="aspect-square border-2 border-[#0F0F0F]/20 bg-[#F9F9F9]"
+							style={`animation-delay:${index * 0.05}s`}
+						></div>
+					{/each}
+				</div>
+			</div>
 		</div>
 	</div>
 {:else if projectNotFound}
@@ -764,10 +871,10 @@
 					<button
 						type="button"
 						onclick={() => (isApiKeyModalOpen = true)}
-						class="flex items-center gap-2 bg-[#0F0F0F] px-4 py-2 text-[#F2F2F0] transition-colors hover:bg-[#FF3E00]"
+						class={`flex items-center gap-2 px-4 py-2 text-[#F2F2F0] transition-colors ${hasApiKey ? 'bg-[#FF3E00] hover:bg-[#0F0F0F]' : 'bg-[#0F0F0F] hover:bg-[#FF3E00]'}`}
 					>
 						<Key size={14} />
-						{hasApiKey ? 'API Connected' : 'Set API Key'}
+						{hasApiKey ? 'API Key Connected' : 'Set API Key'}
 					</button>
 					<button
 						type="button"
@@ -803,7 +910,7 @@
 			{/if}
 
 			{#if step === 1 && !isResultsPage}
-				<div class="my-20 w-full max-w-3xl px-6 fade-in">
+				<div class="my-20 w-full max-w-3xl px-6">
 					<div class="mb-12 flex items-end justify-between">
 						<div>
 							<h1 class="mb-2 font-sans text-5xl font-bold tracking-tight uppercase md:text-6xl">
@@ -874,7 +981,7 @@
 
 			{#if step > 1 || isResultsPage}
 				<div
-					class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col border-x-2 border-[#0F0F0F] bg-white fade-in lg:flex-row"
+					class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col border-x-2 border-[#0F0F0F] bg-white lg:flex-row"
 				>
 					<aside
 						class="flex w-full shrink-0 flex-col border-b-2 border-[#0F0F0F] bg-[#F9F9F9] lg:w-[320px] lg:border-r-2 lg:border-b-0"
@@ -945,7 +1052,7 @@
 
 					<div class="relative flex flex-1 flex-col bg-white">
 						{#if step === 2 && !isResultsPage}
-							<div class="max-w-4xl p-8 fade-in md:p-12">
+							<div class="max-w-4xl p-8 md:p-12">
 								<div class="mb-10">
 									<h2 class="mb-2 font-sans text-3xl font-bold tracking-tight uppercase">
 										Suggested Brand Assets
@@ -1048,7 +1155,7 @@
 						{/if}
 
 						{#if step === 3 || isResultsPage}
-							<div class="flex h-full flex-col fade-in">
+							<div class="flex h-full flex-col">
 								<div
 									class="flex items-center justify-between border-b-2 border-[#0F0F0F] bg-[#F9F9F9] px-8 py-5"
 								>
@@ -1081,7 +1188,9 @@
 									{:else if !isGenerating}
 										<button
 											type="button"
-											class="flex items-center gap-2 border-2 border-[#0F0F0F] bg-white px-4 py-2 font-mono text-[10px] font-bold tracking-widest uppercase shadow-[2px_2px_0px_#0F0F0F] transition-colors hover:text-[#FF3E00]"
+											onclick={() => void handleExportPack()}
+											disabled={generatedSVGs.filter((svg) => svg.status === 'done').length === 0}
+											class="flex items-center gap-2 border-2 border-[#0F0F0F] bg-white px-4 py-2 font-mono text-[10px] font-bold tracking-widest uppercase shadow-[2px_2px_0px_#0F0F0F] transition-colors hover:text-[#FF3E00] disabled:opacity-40"
 										>
 											<Download size={14} /> Export Pack
 										</button>
