@@ -6,6 +6,8 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import JSZip from 'jszip';
+	import { driver } from 'driver.js';
+	import 'driver.js/dist/driver.css';
 	import {
 		CheckSquare,
 		Code,
@@ -17,7 +19,8 @@
 		Plus,
 		RotateCcw,
 		Settings2,
-		Square
+		Square,
+		HelpCircle
 	} from '@lucide/svelte';
 	import { DEFAULT_MODEL_ID } from '$lib/ai/models';
 	import { createAiServices, openRouterApiKeyStore } from '$lib/ai/factory';
@@ -265,10 +268,63 @@
 		hydrateFromProject(initialCachedProject);
 	}
 
+	const startTour = () => {
+		const steps: any[] = [];
+
+		if (step === 1 && !isResultsPage) {
+			steps.push(
+				{
+					element: '#project-name',
+					popover: { title: 'Project Name', description: 'Give your design system a clear name.', side: 'bottom', align: 'start' }
+				},
+				{
+					element: '#project-rules',
+					popover: { title: 'Aesthetic Rules', description: 'Define the visual style here (e.g. minimalist, 2px stroke, brutalist). This steers the AI.', side: 'bottom', align: 'start' }
+				}
+			);
+		} else if (step === 2 && !isResultsPage) {
+			steps.push(
+				{
+					element: '#tour-suggested-assets',
+					popover: { title: 'Suggested Assets', description: 'Select the icons you want to generate. You can add more manually or generate a batch based on a keyword.', side: 'bottom', align: 'start' }
+				},
+				{
+					element: '#tour-generate-btn',
+					popover: { title: 'Generate SVGs', description: 'Once you selected your icons, click here to render them using your connected AI model.', side: 'top', align: 'end' }
+				}
+			);
+		} else if (step === 3 || isResultsPage) {
+			steps.push(
+				{
+					element: '#tour-generated-vectors',
+					popover: { title: 'Generated Vectors', description: 'Here are your results. You can hover over any icon to edit its style or retry the generation.', side: 'bottom', align: 'start' }
+				},
+				{
+					element: '#tour-export-pack',
+					popover: { title: 'Export Pack', description: 'Download your entire icon set as a ZIP file in your preferred format (SVG, JSX, Svelte, Vue).', side: 'bottom', align: 'end' }
+				}
+			);
+		}
+
+		if (steps.length === 0) return;
+
+		const driverObj = driver({ showProgress: true, steps });
+		driverObj.drive();
+	};
+
 	onMount(async () => {
 		refreshApiKeyState();
 		if (hasApiKey) {
 			await loadModels();
+		}
+
+		// Auto-start tour logic
+		const tourKey = `primitive_app_tour_step_${step}`;
+		if (localStorage.getItem(tourKey) !== 'true') {
+			setTimeout(() => {
+				startTour();
+				localStorage.setItem(tourKey, 'true');
+			}, 1000);
 		}
 
 		if (!currentProjectId) {
@@ -918,6 +974,15 @@
 				>
 					<button
 						type="button"
+						onclick={startTour}
+						class="text-[#0F0F0F]/60 transition-colors hover:text-[#FF3E00]"
+						title="Show Help Tour"
+					>
+						<HelpCircle size={20} />
+					</button>
+					<button
+						id="tour-api-key"
+						type="button"
 						onclick={() => (isApiKeyModalOpen = true)}
 						class={`flex items-center gap-2 px-4 py-2 text-[#F2F2F0] transition-colors ${hasApiKey ? 'bg-[#FF3E00] hover:bg-[#0F0F0F]' : 'bg-[#0F0F0F] hover:bg-[#FF3E00]'}`}
 					>
@@ -1111,7 +1176,7 @@
 									</p>
 								</div>
 
-								<div class="border-2 border-[#0F0F0F] shadow-[4px_4px_0px_#0F0F0F]">
+								<div id="tour-suggested-assets" class="border-2 border-[#0F0F0F] shadow-[4px_4px_0px_#0F0F0F]">
 									<div
 										class="flex items-center justify-between border-b-2 border-[#0F0F0F] bg-[#F2F2F0] p-4"
 									>
@@ -1190,6 +1255,7 @@
 
 									<div class="flex justify-end border-t-2 border-[#0F0F0F] bg-[#F9F9F9] p-6">
 										<button
+											id="tour-generate-btn"
 											type="button"
 											onclick={handleGenerate}
 											disabled={selectedIcons.size === 0}
@@ -1203,7 +1269,7 @@
 						{/if}
 
 						{#if step === 3 || isResultsPage}
-							<div class="flex h-full flex-col">
+							<div id="tour-generated-vectors" class="flex h-full flex-col">
 								<div
 									class="flex items-center justify-between border-b-2 border-[#0F0F0F] bg-[#F9F9F9] px-8 py-5"
 								>
@@ -1251,6 +1317,7 @@
 												<option value="vue">.vue</option>
 											</select>
 											<button
+												id="tour-export-pack"
 												type="button"
 												onclick={() => void handleExportPack()}
 												disabled={generatedSVGs.filter((svg) => svg.status === 'done').length === 0}
