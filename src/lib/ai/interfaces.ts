@@ -11,6 +11,8 @@ export interface GenerateSvgInput {
 	projectDescription: string;
 	iconName: string;
 	modelId: string;
+	colorPalette?: string[];
+	strokeWidth?: number;
 	retryContext?: RetryContextEntry[];
 }
 
@@ -54,10 +56,20 @@ export interface SvgGenerationService {
 	remixSvg(input: RemixSvgInput): Promise<string>;
 }
 
+export interface SuggestColorsInput {
+	prompt: string;
+	modelId: string;
+}
+
+export interface ColorSuggestionService {
+	suggestColors(input: SuggestColorsInput): Promise<string[]>;
+}
+
 export interface AiServices {
 	iconSuggestionService: IconSuggestionService;
 	svgGenerationService: SvgGenerationService;
 	modelCatalogService: ModelCatalogService;
+	colorSuggestionService: ColorSuggestionService;
 }
 
 export interface ApiKeyStore {

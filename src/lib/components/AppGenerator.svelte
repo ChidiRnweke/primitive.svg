@@ -79,6 +79,8 @@
 
 	let isSuggesting = $state(false);
 	let isKeywordSuggesting = $state(false);
+	let isSuggestingColors = $state(false);
+	let colorPrompt = $state('');
 	let suggestedIcons = $state<string[]>([]);
 	let selectedIcons = $state(new Set<string>());
 
@@ -102,6 +104,10 @@
 	let remixColors = $state<string[]>(['#0F0F0F', '#FF3E00']);
 	let remixStrokeWidth = $state(2);
 	let exportFormat = $state<ExportFormat>('svg');
+
+	let globalRemixPrompt = $state('');
+	let globalColors = $state<string[]>(['#0F0F0F', '#FF3E00']);
+	let globalStrokeWidth = $state(2);
 
 	const aiServices = createAiServices();
 	const isIconsPage = $derived(view === 'icons');
@@ -415,6 +421,11 @@
 		}
 	};
 
+	const handleClearIcons = () => {
+		selectedIcons = new Set();
+		void persist();
+	};
+
 	const mergeIcons = (icons: string[]) => {
 		const merged = new Set([...suggestedIcons, ...icons]);
 		suggestedIcons = Array.from(merged);
@@ -423,6 +434,33 @@
 			next.add(icon);
 		}
 		selectedIcons = next;
+	};
+
+	const handleSuggestColors = async () => {
+		const prompt = colorPrompt.trim();
+		if (!prompt) return;
+
+		if (!hasApiKey) {
+			generationError = 'Set your OpenRouter API key before generating suggestions.';
+			isApiKeyModalOpen = true;
+			return;
+		}
+
+		generationError = '';
+		isSuggestingColors = true;
+		try {
+			const colors = await aiServices.colorSuggestionService.suggestColors({
+				prompt: `Theme/Description: ${prompt}\nProject Context: ${appName}\nStyle: ${appDesc}`,
+				modelId: selectedModelId
+			});
+			globalColors = colors;
+			colorPrompt = '';
+			await persist();
+		} catch (error) {
+			generationError = toUserFacingError(error, 'Failed to fetch color suggestions.');
+		} finally {
+			isSuggestingColors = false;
+		}
 	};
 
 	const handleSuggest = async () => {
@@ -547,6 +585,12 @@
 		generatedSVGs = newSVGs;
 		await persist();
 
+		const normalizedPalette = globalColors
+			.map((color) => normalizeHex(color) ?? '')
+			.filter((color) => color.length > 0)
+			.slice(0, 8);
+		const clampedStrokeWidth = Math.max(1, Math.min(8, Math.round(globalStrokeWidth)));
+
 		for (const svg of newSVGs) {
 			try {
 				const code = await aiServices.svgGenerationService.generateSvg({
@@ -554,6 +598,8 @@
 					projectDescription: appDesc,
 					iconName: svg.name,
 					modelId: selectedModelId,
+					colorPalette: normalizedPalette.length > 0 ? normalizedPalette : undefined,
+					strokeWidth: clampedStrokeWidth,
 					retryContext: getRetryContext(svg)
 				});
 				const normalized = normalizeGeneratedSvg(code);
@@ -726,6 +772,115 @@
 		await persist();
 	};
 
+	const addGlobalColor = () => {
+		if (globalColors.length < 8) {
+			globalColors = [...globalColors, '#000000'];
+		}
+	};
+
+	const updateGlobalColor = (index: number, color: string) => {
+		const newColors = [...globalColors];
+		newColors[index] = color;
+		globalColors = newColors;
+	};
+
+	const removeGlobalColor = (index: number) => {
+		if (globalColors.length <= 1) {
+			return;
+		}
+		globalColors = globalColors.filter((_, i) => i !== index);
+	};
+
+	const handleGlobalRemix = async () => {
+		const remixInput = globalRemixPrompt.trim();
+		const normalizedPalette = globalColors
+			.map((color) => normalizeHex(color) ?? '')
+			.filter((color) => color.length > 0)
+			.slice(0, 8);
+		const clampedStrokeWidth = Math.max(1, Math.min(8, Math.round(globalStrokeWidth)));
+
+		generatedSVGs = generatedSVGs.map((item) => ({
+			...item,
+			styleControls: {
+				palette: normalizedPalette.length > 0 ? normalizedPalette : (item.styleControls?.palette ?? []),
+				strokeWidth: clampedStrokeWidth
+			}
+		}));
+
+		if (!remixInput) {
+			await persist();
+			setActionNotice('Global style controls updated.', 'success');
+			return;
+		}
+
+		if (!hasApiKey) {
+			generationError = 'Set your OpenRouter API key before remixing.';
+			isApiKeyModalOpen = true;
+			return;
+		}
+
+		generationError = '';
+		const targetSVGs = generatedSVGs.filter((item) => item.status === 'done');
+		
+		generatedSVGs = generatedSVGs.map((item) =>
+			item.status === 'done' ? { ...item, status: 'generating' } : item
+		);
+		globalRemixPrompt = '';
+
+		for (const targetSvg of targetSVGs) {
+			try {
+				const code = await aiServices.svgGenerationService.remixSvg({
+					projectName: appName,
+					projectDescription: appDesc,
+					iconName: targetSvg.name,
+					currentSvg: targetSvg.code,
+					modelId: selectedModelId,
+					remixPrompt: remixInput,
+					variant: targetSvg.variant,
+					colorPalette: normalizedPalette,
+					strokeWidth: clampedStrokeWidth,
+					retryContext: getRetryContext(targetSvg)
+				});
+
+				const normalized = normalizeGeneratedSvg(code);
+				generatedSVGs = generatedSVGs.map((item) =>
+					item.id === targetSvg.id
+						? {
+								...item,
+								status: 'done',
+								variant: item.variant + 1,
+								code: normalized.svg,
+								styleControls: {
+									palette: normalized.styleControls.palette.length > 0 ? normalized.styleControls.palette : normalizedPalette,
+									strokeWidth: normalized.styleControls.strokeWidth || clampedStrokeWidth
+								}
+							}
+						: item
+				);
+			} catch (error) {
+				const retryRecord = makeRetryRecord('remix', error, selectedModelId);
+				generatedSVGs = generatedSVGs.map((item) =>
+					item.id === targetSvg.id
+						? withRetryRecord(
+								{
+									...item,
+									status: 'done',
+									code: targetSvg.code,
+									styleControls: {
+										palette: normalizedPalette,
+										strokeWidth: clampedStrokeWidth
+									}
+								},
+								retryRecord
+							)
+						: item
+				);
+			}
+		}
+
+		await persist();
+	};
+
 	const handleRetryIcon = async (svg: GeneratedSvg) => {
 		if (!hasApiKey) {
 			generationError = 'Set your OpenRouter API key before retrying an icon.';
@@ -741,11 +896,16 @@
 		);
 
 		try {
+			const paletteToUse = svg.styleControls?.palette?.length ? svg.styleControls.palette : globalColors.filter(c => c.length > 0).slice(0, 8);
+			const strokeWidthToUse = svg.styleControls?.strokeWidth ?? globalStrokeWidth;
+
 			const code = await aiServices.svgGenerationService.generateSvg({
 				projectName: appName,
 				projectDescription: appDesc,
 				iconName: svg.name,
 				modelId: selectedModelId,
+				colorPalette: paletteToUse.length > 0 ? paletteToUse : undefined,
+				strokeWidth: strokeWidthToUse,
 				retryContext: getRetryContext(svg)
 			});
 			const normalized = normalizeGeneratedSvg(code);
@@ -1044,26 +1204,6 @@
 		</header>
 
 		<main class="relative z-10 flex flex-1 flex-col items-center">
-			{#if generationError}
-				<div class="w-full max-w-5xl px-6 pt-6 fade-in">
-					<div
-						class="border-2 border-[#FF3E00] bg-[#FF3E00]/10 px-5 py-3 font-mono text-xs font-bold tracking-wide uppercase"
-					>
-						{generationError}
-					</div>
-				</div>
-			{/if}
-
-			{#if actionNotice}
-				<div class="w-full max-w-5xl px-6 pt-3 fade-in">
-					<div
-						class={`border-2 px-5 py-3 font-mono text-xs font-bold tracking-wide uppercase ${actionNoticeTone === 'success' ? 'border-[#0F0F0F] bg-[#0F0F0F]/10 text-[#0F0F0F]' : 'border-[#FF3E00] bg-[#FF3E00]/10 text-[#0F0F0F]'}`}
-					>
-						{actionNotice}
-					</div>
-				</div>
-			{/if}
-
 			{#if step === 1 && !isResultsPage}
 				<div class="my-20 w-full max-w-3xl px-6">
 					<div class="mb-12 flex items-end justify-between">
@@ -1182,24 +1322,123 @@
 							</div>
 						</div>
 
-						{#if step === 2 && !isResultsPage}
-							<div class="flex-1 overflow-y-auto p-6">
-								<h3
-									class="mb-4 font-mono text-[10px] font-bold tracking-widest text-[#FF3E00] uppercase"
-								>
-									Enrich with Standard UI
+						{#if step >= 2 || isResultsPage}
+							<div class="flex-1 overflow-y-auto bg-[#F9F9F9] p-6">
+								<h3 class="mb-4 font-mono text-[10px] font-bold tracking-widest text-[#FF3E00] uppercase">
+									Global Style Controls
 								</h3>
-								<div class="space-y-3">
-									{#each PRESET_PACKS as pack}
+								
+								<div class="space-y-6">
+									{#if step === 3 || isResultsPage}
+										<div>
+											<label for="global-remix-prompt" class="mb-2 block font-mono text-[10px] font-bold tracking-widest uppercase">
+												Global Prompt
+											</label>
+											<textarea
+												id="global-remix-prompt"
+												bind:value={globalRemixPrompt}
+												placeholder="e.g. Make the lines thicker, change the shape to be more rounded..."
+												rows={3}
+												class="w-full resize-none border-2 border-[#0F0F0F] bg-white p-3 font-mono text-xs transition-all outline-none placeholder:text-[#0F0F0F]/30 focus:border-[#FF3E00]"
+											></textarea>
+										</div>
+									{/if}
+
+									<div class="border-2 border-[#0F0F0F] bg-white p-4">
+										<div class="mb-3 font-mono text-[10px] font-bold tracking-widest text-[#0F0F0F] uppercase">
+											Color Palette
+										</div>
+										
+										<div class="mb-4 flex gap-2">
+											<input
+												type="text"
+												bind:value={colorPrompt}
+												placeholder="e.g. Cyberpunk neon, Miami vice..."
+												class="w-full border-2 border-[#0F0F0F] px-3 py-2 font-mono text-xs outline-none focus:border-[#FF3E00]"
+											/>
+											<button
+												type="button"
+												onclick={handleSuggestColors}
+												disabled={isSuggestingColors || !colorPrompt.trim()}
+												class="bg-[#0F0F0F] px-3 py-2 font-mono text-[10px] font-bold tracking-widest text-white uppercase hover:bg-[#FF3E00] disabled:opacity-50"
+											>
+												{#if isSuggestingColors}
+													...
+												{:else}
+													Magic
+												{/if}
+											</button>
+										</div>
+
+										<div class="space-y-2">
+											{#each globalColors as color, index}
+												<div class="flex items-center gap-2">
+													<input
+														type="color"
+														value={normalizeHex(color) ?? '#000000'}
+														onchange={(event) => updateGlobalColor(index, (event.currentTarget as HTMLInputElement).value)}
+														class="h-9 w-10 border border-[#0F0F0F] bg-white"
+													/>
+													<input
+														type="text"
+														value={color}
+														oninput={(event) => updateGlobalColor(index, (event.currentTarget as HTMLInputElement).value)}
+														placeholder="#0F0F0F"
+														class="flex-1 border border-[#0F0F0F] px-3 py-2 font-mono text-[11px] font-bold tracking-wider uppercase outline-none focus:border-[#FF3E00]"
+													/>
+													<button
+														type="button"
+														onclick={() => removeGlobalColor(index)}
+														disabled={globalColors.length <= 1}
+														class="border border-[#0F0F0F] px-2 py-2 font-mono text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#F2F2F0] disabled:opacity-40"
+													>
+														Del
+													</button>
+												</div>
+											{/each}
+										</div>
 										<button
 											type="button"
-											onclick={() => applyPreset(pack.icons)}
-											class="group flex w-full items-center justify-between border-2 border-[#E5E5E5] bg-white p-3 text-left transition-colors hover:border-[#FF3E00]"
+											onclick={addGlobalColor}
+											disabled={globalColors.length >= 8}
+											class="mt-3 border-2 border-[#0F0F0F] px-3 py-2 font-mono text-[10px] font-bold tracking-widest uppercase transition-colors hover:bg-[#F2F2F0] disabled:opacity-40"
 										>
-											<span class="font-sans text-sm font-bold text-[#0F0F0F]">{pack.name}</span>
-											<Plus size={16} class="text-[#0F0F0F]/30 group-hover:text-[#FF3E00]" />
+											Add Color
 										</button>
-									{/each}
+									</div>
+
+									<div class="border-2 border-[#0F0F0F] bg-white p-4">
+										<div class="mb-3 font-mono text-[10px] font-bold tracking-widest uppercase">
+											Line Thickness
+										</div>
+										<div class="flex items-center gap-3">
+											<input
+												type="range"
+												min="1"
+												max="8"
+												step="1"
+												bind:value={globalStrokeWidth}
+												class="w-full accent-[#FF3E00]"
+											/>
+											<input
+												type="number"
+												min="1"
+												max="8"
+												bind:value={globalStrokeWidth}
+												class="w-16 border border-[#0F0F0F] px-2 py-1 font-mono text-xs font-bold outline-none"
+											/>
+										</div>
+									</div>
+
+									{#if step === 3 || isResultsPage}
+										<button
+											type="button"
+											onclick={handleGlobalRemix}
+											class="w-full bg-[#0F0F0F] py-3 font-mono text-xs font-bold tracking-widest text-white uppercase transition-colors hover:bg-[#FF3E00] disabled:opacity-50"
+										>
+											Apply to All
+										</button>
+									{/if}
 								</div>
 							</div>
 						{/if}
@@ -1225,9 +1464,18 @@
 									<div
 										class="flex items-center justify-between border-b-2 border-[#0F0F0F] bg-[#F2F2F0] p-4"
 									>
-										<span class="font-mono text-[10px] font-bold tracking-widest uppercase"
-											>Target Vector List</span
-										>
+										<div class="flex items-center gap-4">
+											<span class="font-mono text-[10px] font-bold tracking-widest uppercase"
+												>Target Vector List</span
+											>
+											<button
+												type="button"
+												onclick={handleClearIcons}
+												class="font-mono text-[10px] font-bold tracking-widest text-[#0F0F0F]/40 uppercase transition-colors hover:text-[#FF3E00]"
+											>
+												[ Clear ]
+											</button>
+										</div>
 										<span
 											class="font-mono text-[10px] font-bold tracking-widest text-[#FF3E00] uppercase"
 											>{selectedIcons.size} Selected</span
@@ -1235,7 +1483,7 @@
 									</div>
 
 									<div class="bg-white p-6">
-										<div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+										<div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
 											<div class="border-2 border-[#E5E5E5] p-4">
 												<div class="mb-2 font-mono text-[10px] font-bold tracking-widest uppercase">
 													Add One-by-One
@@ -1276,6 +1524,24 @@
 													>
 														{isKeywordSuggesting ? 'Working' : 'Generate'}
 													</button>
+												</div>
+											</div>
+
+											<div class="border-2 border-[#E5E5E5] p-4">
+												<div class="mb-2 font-mono text-[10px] font-bold tracking-widest uppercase">
+													Standard UI Packs
+												</div>
+												<div class="grid grid-cols-1 gap-2">
+													{#each PRESET_PACKS as pack}
+														<button
+															type="button"
+															onclick={() => applyPreset(pack.icons)}
+															class="group flex items-center justify-between border-2 border-[#E5E5E5] bg-[#F9F9F9] p-2 transition-colors hover:border-[#FF3E00]"
+														>
+															<span class="font-sans text-[10px] font-bold uppercase">{pack.name}</span>
+															<Plus size={12} class="text-[#0F0F0F]/30 group-hover:text-[#FF3E00]" />
+														</button>
+													{/each}
 												</div>
 											</div>
 										</div>
@@ -1635,5 +1901,38 @@
 			onSelect={handleModelSelected}
 			onRetry={loadModels}
 		/>
+
+		<!-- Toast Notifications -->
+		<div class="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+			{#if generationError}
+				<div class="pointer-events-auto w-80 fade-in">
+					<div class="border-2 border-[#FF3E00] bg-white shadow-[4px_4px_0px_#FF3E00] relative">
+						<div class="bg-[#FF3E00] px-4 py-2 flex justify-between items-center">
+							<span class="font-mono text-[10px] font-bold tracking-widest text-white uppercase">Error</span>
+							<button onclick={() => generationError = ''} class="text-white/80 hover:text-white">✕</button>
+						</div>
+						<div class="p-4 font-mono text-xs text-[#0F0F0F] leading-tight">
+							{generationError}
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			{#if actionNotice}
+				<div class="pointer-events-auto w-80 fade-in">
+					<div class={`border-2 relative bg-white ${actionNoticeTone === 'success' ? 'border-[#0F0F0F] shadow-[4px_4px_0px_#0F0F0F]' : 'border-[#FF3E00] shadow-[4px_4px_0px_#FF3E00]'}`}>
+						<div class={`px-4 py-2 flex justify-between items-center ${actionNoticeTone === 'success' ? 'bg-[#0F0F0F]' : 'bg-[#FF3E00]'}`}>
+							<span class="font-mono text-[10px] font-bold tracking-widest text-white uppercase">
+								{actionNoticeTone === 'success' ? 'Notice' : 'Alert'}
+							</span>
+							<button onclick={() => actionNotice = ''} class="text-white/80 hover:text-white">✕</button>
+						</div>
+						<div class="p-4 font-mono text-xs text-[#0F0F0F] leading-tight">
+							{actionNotice}
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
 	</div>
 {/if}
