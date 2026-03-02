@@ -21,7 +21,8 @@
 		RotateCcw,
 		Settings2,
 		Square,
-		HelpCircle
+		HelpCircle,
+		Trash2
 	} from '@lucide/svelte';
 	import { DEFAULT_MODEL_ID } from '$lib/ai/models';
 	import { createAiServices, openRouterApiKeyStore } from '$lib/ai/factory';
@@ -1471,9 +1472,10 @@
 											<button
 												type="button"
 												onclick={handleClearIcons}
-												class="font-mono text-[10px] font-bold tracking-widest text-[#0F0F0F]/40 uppercase transition-colors hover:text-[#FF3E00]"
+												class="flex items-center gap-1.5 border-2 border-[#0F0F0F] bg-white px-3 py-1 font-mono text-[9px] font-bold tracking-widest text-[#0F0F0F] uppercase shadow-[2px_2px_0px_#0F0F0F] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:bg-[#FF3E00] hover:text-white hover:shadow-none"
 											>
-												[ Clear ]
+												<Trash2 size={10} />
+												Clear List
 											</button>
 										</div>
 										<span
